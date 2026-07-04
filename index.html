@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zero Fatality Grid — India Road Safety Command Center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#070b14; --bg2:#0b1220; --bg3:#0e1626;
+  --panel:rgba(255,255,255,0.045); --panel2:rgba(255,255,255,0.07);
+  --border:rgba(255,255,255,0.09); --border2:rgba(255,255,255,0.16);
+  --text:#e9edf6; --muted:#93a2ba; --dim:#5b6883;
+  --saffron:#ff7a33; --amber:#ffb454; --teal:#4fe3c4; --danger:#ff4d5e; --green:#3ed598;
+  --fx-fast: cubic-bezier(.16,.9,.3,1);
+}
+*{box-sizing:border-box;}
+html{background:var(--bg); scroll-behavior:auto;}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:'Inter',system-ui,sans-serif; overflow-x:hidden;
+  cursor:none;
+}
+::selection{background:var(--saffron); color:#100a05;}
+h1,h2,h3,.disp{font-family:'Rajdhani',sans-serif; font-weight:700; letter-spacing:.02em;}
+.mono{font-family:'JetBrains Mono',monospace;}
+a{color:var(--teal);}
+.skip-link{position:fixed; left:-999px; top:0; background:var(--saffron); color:#100a05; padding:10px 16px; z-index:9999; font-weight:600;}
+.skip-link:focus{left:10px; top:10px;}
+:focus-visible{outline:2px solid var(--teal); outline-offset:3px;}
+
+#bgCanvas{position:fixed; inset:0; width:100%; height:100%; z-index:0; pointer-events:none;}
+#avatarLayer{position:fixed; inset:0; z-index:9990; pointer-events:none;}
+#avatarSvg{position:absolute; top:0; left:0; width:64px; height:96px; filter:drop-shadow(0 0 8px rgba(79,227,196,.55));}
+
+.progressbar{position:fixed; top:0; left:0; height:3px; background:linear-gradient(90deg,var(--saffron),var(--amber),var(--teal)); z-index:9998; width:0%; transition:width .05s linear;}
+
+nav.hud{position:fixed; right:18px; top:50%; transform:translateY(-50%); z-index:9997; display:flex; flex-direction:column; gap:10px;}
+nav.hud button{
+  width:11px; height:11px; border-radius:50%; border:1px solid var(--border2); background:transparent; cursor:pointer; padding:0; position:relative;
+}
+nav.hud button.active{background:var(--teal); box-shadow:0 0 10px var(--teal);}
+nav.hud button .lbl{
+  position:absolute; right:20px; top:50%; transform:translateY(-50%); white-space:nowrap; font-family:'Rajdhani',sans-serif; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted);
+  opacity:0; transition:opacity .2s;
+}
+nav.hud button:hover .lbl, nav.hud button.active .lbl{opacity:1; color:var(--text);}
+
+.topbrand{position:fixed; top:14px; left:20px; z-index:9997; font-family:'Rajdhani',sans-serif; font-weight:700; font-size:14px; letter-spacing:.14em; color:var(--muted); display:flex; align-items:center; gap:8px;}
+.topbrand .dot{width:7px; height:7px; border-radius:50%; background:var(--danger); box-shadow:0 0 8px var(--danger); animation:pulseDot 2s infinite;}
+@keyframes pulseDot{0%,100%{opacity:1;}50%{opacity:.3;}}
+
+main{position:relative; z-index:1;}
+section{position:relative; min-height:100vh; padding:120px 8vw; display:flex; flex-direction:column; justify-content:center;}
+.section-inner{max-width:1180px; margin:0 auto; width:100%;}
+.eyebrow{font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:.22em; color:var(--teal); text-transform:uppercase; margin-bottom:14px; display:flex; align-items:center; gap:10px;}
+.eyebrow::before{content:''; width:26px; height:1px; background:var(--teal);}
+h2.title{font-size:clamp(2rem,5vw,3.4rem); margin:0 0 18px; line-height:1.05;}
+p.lead{color:var(--muted); font-size:1.05rem; max-width:640px; line-height:1.65;}
+.note{font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--dim); border-left:2px solid var(--border2); padding-left:10px; margin-top:14px; max-width:560px; line-height:1.6;}
+
+.reveal{opacity:0; transform:translateY(40px) scale(.98); filter:blur(6px); transition:opacity .9s var(--fx-fast), transform .9s var(--fx-fast), filter .9s var(--fx-fast);}
+.reveal.in{opacity:1; transform:translateY(0) scale(1); filter:blur(0);}
+
+.panel{
+  background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:22px;
+  backdrop-filter:blur(14px); position:relative; overflow:hidden; transform-style:preserve-3d;
+  transition:transform .25s var(--fx-fast), border-color .25s, box-shadow .25s;
+}
+.panel::before{content:''; position:absolute; inset:0; background:radial-gradient(220px circle at var(--mx,50%) var(--my,50%), rgba(79,227,196,.14), transparent 60%); opacity:0; transition:opacity .3s; pointer-events:none;}
+.panel:hover::before{opacity:1;}
+.panel:hover{border-color:var(--border2); box-shadow:0 20px 60px -20px rgba(0,0,0,.6);}
+.panel .scan{position:absolute; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,var(--teal),transparent); top:0; opacity:.6; animation:scanline 3.4s linear infinite;}
+@keyframes scanline{0%{top:0;}100%{top:100%;}}
+
+.grid{display:grid; gap:18px;}
+.g2{grid-template-columns:repeat(auto-fit,minmax(260px,1fr));}
+.g3{grid-template-columns:repeat(auto-fit,minmax(220px,1fr));}
+.g4{grid-template-columns:repeat(auto-fit,minmax(180px,1fr));}
+
+.statnum{font-family:'Rajdhani',sans-serif; font-size:2.4rem; font-weight:700; color:var(--amber);}
+.statlbl{font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.08em;}
+
+.btnrow{display:flex; gap:10px; flex-wrap:wrap; margin-top:16px;}
+button.chip{
+  background:var(--panel2); border:1px solid var(--border2); color:var(--text); padding:9px 16px; border-radius:999px;
+  font-family:'JetBrains Mono',monospace; font-size:12.5px; cursor:pointer; transition:.2s;
+}
+button.chip:hover, button.chip.active{background:var(--teal); color:#08131a; border-color:var(--teal);}
+
+#hero{min-height:100vh; padding-top:0; align-items:center; justify-content:center; text-align:center;}
+.hero-lines{position:relative; height:280px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px;}
+.hero-line{font-family:'Rajdhani',sans-serif; font-weight:700; font-size:clamp(1.4rem,4.4vw,3rem); letter-spacing:.02em; opacity:0; transform:translateZ(-200px) translateY(30px); transition:opacity 1.4s ease, transform 1.4s ease;}
+.hero-line.show{opacity:1; transform:translateZ(0) translateY(0);}
+.hero-line.two{color:var(--teal);}
+.scroll-hint{margin-top:38px; font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:.3em; color:var(--dim); animation:bob 2.4s ease-in-out infinite;}
+@keyframes bob{0%,100%{transform:translateY(0);}50%{transform:translateY(8px);}}
+
+.impact-track{display:flex; gap:16px; overflow-x:auto; padding:20px 4px 30px; scroll-snap-type:x proximity;}
+.impact-card{scroll-snap-align:start; min-width:200px; flex:1; padding:18px; border-radius:12px; border:1px solid var(--border); background:var(--panel);}
+.impact-card .t{font-family:'JetBrains Mono',monospace; color:var(--danger); font-size:13px;}
+.impact-card h4{margin:8px 0 6px; font-family:'Rajdhani',sans-serif; font-size:1.1rem;}
+.impact-card p{color:var(--muted); font-size:13px; margin:0; line-height:1.5;}
+
+.lab-card{cursor:pointer;}
+.lab-card h4{margin:4px 0 8px; font-size:1.15rem;}
+.lab-card p{color:var(--muted); font-size:13.5px; line-height:1.6; margin:0;}
+.lab-detail{max-height:0; overflow:hidden; transition:max-height .4s var(--fx-fast); font-size:13px; color:var(--muted); line-height:1.6;}
+.lab-card.open .lab-detail{max-height:260px; margin-top:10px; padding-top:10px; border-top:1px dashed var(--border2);}
+
+.msleep-controls{display:flex; gap:30px; flex-wrap:wrap; margin:20px 0;}
+.msleep-group label{display:block; font-size:11px; color:var(--dim); text-transform:uppercase; letter-spacing:.1em; margin-bottom:8px;}
+.roadbar{position:relative; height:70px; border-radius:10px; background:linear-gradient(90deg,#0a1220,#111c30); border:1px solid var(--border); overflow:hidden; margin-top:10px;}
+.roadbar .dash{position:absolute; top:50%; left:0; right:0; height:2px; background:repeating-linear-gradient(90deg,var(--dim) 0 26px, transparent 26px 52px); transform:translateY(-50%);}
+.roadbar .car{position:absolute; top:50%; transform:translate(0,-50%); font-size:22px; transition:left 1s linear;}
+.roadbar .veil{position:absolute; inset:0; background:#050810; opacity:0; transition:opacity .25s;}
+.roadbar .veil.on{opacity:.94;}
+#msleepResult{font-family:'JetBrains Mono',monospace; color:var(--amber); margin-top:10px; min-height:20px;}
+
+.fatigue-timeline{display:flex; gap:6px; margin-top:18px;}
+.fatigue-timeline .slot{flex:1; padding:14px 8px; text-align:center; border-radius:8px; border:1px solid var(--border); background:var(--panel); font-size:11.5px; color:var(--muted); cursor:pointer; transition:.2s;}
+.fatigue-timeline .slot:hover, .fatigue-timeline .slot.active{border-color:var(--teal); color:var(--text);}
+.meter{height:10px; border-radius:6px; background:#0a111f; overflow:hidden; margin-top:16px; border:1px solid var(--border);}
+.meter i{display:block; height:100%; width:30%; background:linear-gradient(90deg,var(--green),var(--amber),var(--danger)); transition:width .5s var(--fx-fast);}
+
+canvas.scenecanvas{width:100%; height:340px; border-radius:12px; border:1px solid var(--border); display:block; background:#050a13;}
+
+.cabin-wrap{display:flex; gap:24px; flex-wrap:wrap; align-items:flex-start;}
+.cabin-view{flex:1; min-width:280px;}
+#seatbeltFlash{position:fixed; inset:0; z-index:9996; display:flex; align-items:center; justify-content:center; font-family:'Rajdhani',sans-serif; font-size:3rem; color:var(--danger); background:rgba(5,8,16,.5); opacity:0; pointer-events:none; transition:opacity .15s;}
+#seatbeltFlash.on{opacity:1;}
+
+.orbit-wrap{position:relative; height:520px; display:flex; align-items:center; justify-content:center;}
+.orbit-ring{position:absolute; width:440px; height:440px; border-radius:50%; border:1px dashed var(--border2);}
+.orbit-ring.r2{width:320px; height:320px; animation:spinSlow 60s linear infinite;}
+.orbit-ring.r1{animation:spinSlow 90s linear infinite reverse;}
+@keyframes spinSlow{from{transform:rotate(0);}to{transform:rotate(360deg);}}
+.orbit-node{position:absolute; width:170px; padding:12px 14px; border-radius:10px; background:var(--panel2); border:1px solid var(--border2); font-size:12px; text-decoration:none; color:var(--text); top:50%; left:50%; transform-origin:center; transition:transform .3s, box-shadow .3s;}
+.orbit-node:hover{border-color:var(--teal); box-shadow:0 0 24px rgba(79,227,196,.25);}
+.orbit-node b{display:block; font-family:'Rajdhani',sans-serif; font-size:14px; margin-bottom:3px;}
+.orbit-center{position:absolute; width:120px; height:120px; border-radius:50%; background:radial-gradient(circle,rgba(79,227,196,.25),transparent 70%); display:flex; align-items:center; justify-content:center; text-align:center; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--teal);}
+
+.poster-section{height:420vh; position:relative;}
+.poster-sticky{position:sticky; top:0; height:100vh; overflow:hidden; display:flex; align-items:center;}
+.poster-track{display:flex; gap:34px; padding:0 8vw; will-change:transform;}
+.poster{min-width:300px; height:400px; border-radius:16px; padding:26px; display:flex; flex-direction:column; justify-content:flex-end; border:1px solid var(--border2); position:relative; overflow:hidden;}
+.poster::after{content:''; position:absolute; inset:0; background:linear-gradient(180deg,transparent 30%, rgba(0,0,0,.55)); }
+.poster h4{position:relative; z-index:1; font-size:1.4rem; line-height:1.25; margin:0;}
+.poster span.tag{position:relative; z-index:1; font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--teal); letter-spacing:.14em; text-transform:uppercase;}
+
+.cockpit{position:relative; height:600px; border-radius:18px; overflow:hidden; border:1px solid var(--border);}
+.cockpit .dash{position:absolute; bottom:0; left:0; right:0; height:150px; background:linear-gradient(180deg,rgba(10,16,28,.4),#060a12); border-top:1px solid var(--border2);}
+.hud-item{position:absolute; padding:8px 12px; background:rgba(6,10,18,.6); border:1px solid var(--border2); border-radius:8px; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--teal);}
+.event-badge{position:absolute; padding:6px 12px; border-radius:8px; background:rgba(255,77,94,.15); border:1px solid var(--danger); color:var(--danger); font-family:'JetBrains Mono',monospace; font-size:12px; opacity:0; transition:opacity .3s; top:30px; left:50%; transform:translateX(-50%);}
+.event-badge.show{opacity:1;}
+
+.dial{width:130px; height:130px; border-radius:50%; border:1px solid var(--border2); position:relative; margin:0 auto 8px; background:radial-gradient(circle at 50% 30%, rgba(79,227,196,.08), transparent 60%);}
+.dial input[type=range]{position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer;}
+.dial .needle{position:absolute; left:50%; top:50%; width:3px; height:48px; background:var(--amber); transform-origin:bottom center; border-radius:2px;}
+.dial .val{position:absolute; bottom:14px; left:0; right:0; text-align:center; font-family:'JetBrains Mono',monospace; font-size:13px;}
+.simroad{position:relative; height:120px; border-radius:10px; background:#0a111f; border:1px solid var(--border); overflow:hidden; margin-top:20px;}
+.simroad .obstacle{position:absolute; right:40px; top:50%; transform:translateY(-50%); font-size:26px;}
+.simroad .simcar{position:absolute; left:10px; top:50%; transform:translateY(-50%); font-size:26px; transition:left .3s;}
+.simroad .zone{position:absolute; top:0; bottom:0; opacity:.35;}
+
+.timeline-h{display:flex; position:relative; margin-top:40px;}
+.timeline-h::before{content:''; position:absolute; top:22px; left:0; right:0; height:2px; background:var(--border2);}
+.tl-step{flex:1; text-align:center; position:relative; cursor:pointer;}
+.tl-step .node{width:14px; height:14px; border-radius:50%; background:var(--bg); border:2px solid var(--teal); margin:14px auto; position:relative; z-index:1; transition:.2s;}
+.tl-step:hover .node, .tl-step.active .node{background:var(--teal); box-shadow:0 0 14px var(--teal);}
+.tl-step h5{font-size:12.5px; margin:0 0 4px; font-family:'Rajdhani',sans-serif;}
+.tl-step .info{font-size:11.5px; color:var(--muted); max-width:150px; margin:0 auto;}
+
+#weatherOverlay{position:fixed; inset:0; z-index:2; pointer-events:none; mix-blend-mode:screen; opacity:0; transition:opacity 1.2s;}
+
+.finale{text-align:center;}
+.finale .fline{font-family:'Rajdhani',sans-serif; font-size:clamp(1.3rem,3.6vw,2.4rem); margin:14px 0; opacity:0; transform:translateY(24px); transition:opacity 1s, transform 1s;}
+.finale .fline.in{opacity:1; transform:translateY(0);}
+.action-row{display:flex; gap:14px; flex-wrap:wrap; justify-content:center; margin-top:30px;}
+.action-row span{font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:.08em; padding:10px 16px; border:1px solid var(--border2); border-radius:999px; color:var(--muted);}
+.signature{margin-top:80px; font-family:'Rajdhani',sans-serif; font-size:13px; letter-spacing:.2em; color:var(--dim); transition:transform .2s, color .3s;}
+.signature:hover{color:var(--teal);}
+
+.sourcefoot{margin-top:16px; font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--dim);}
+
+@media (max-width:760px){
+  body{cursor:auto;}
+  #avatarLayer{display:none;}
+  section{padding:90px 6vw;}
+  nav.hud{display:none;}
+  .orbit-wrap{height:auto; flex-direction:column; position:static; padding:20px 0;}
+  .orbit-ring{display:none;}
+  .orbit-node{position:static; transform:none !important; width:100%; margin-bottom:10px;}
+  .orbit-center{position:static; margin:0 auto 16px;}
+}
+
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:.001s !important; transition-duration:.2s !important;}
+  #avatarLayer{display:none;}
+  .reveal{opacity:1; transform:none; filter:none;}
+}
+</style>
+</head>
+<body>
+<a href="#main" class="skip-link">Skip to content</a>
+<canvas id="bgCanvas" aria-hidden="true"></canvas>
+<div id="weatherOverlay" aria-hidden="true"></div>
+<div class="progressbar" id="progressbar"></div>
+<div class="topbrand"><span class="dot"></span> ZERO FATALITY GRID — INDIA</div>
+
+<div id="avatarLayer" aria-hidden="true">
+  <svg id="avatarSvg" viewBox="0 0 64 96">
+    <g id="avatarBody" fill="none" stroke="#4fe3c4" stroke-width="3" stroke-linecap="round">
+      <circle id="avHead" cx="32" cy="14" r="8" fill="rgba(79,227,196,.15)"/>
+      <line id="avSpine" x1="32" y1="22" x2="32" y2="52"/>
+      <line id="avArmL" x1="32" y1="30" x2="14" y2="46"/>
+      <line id="avArmR" x1="32" y1="30" x2="50" y2="46"/>
+      <line id="avLegL" x1="32" y1="52" x2="18" y2="86"/>
+      <line id="avLegR" x1="32" y1="52" x2="46" y2="86"/>
+    </g>
+  </svg>
+</div>
+
+<nav class="hud" id="hudNav" aria-label="Section navigation"></nav>
+<div id="seatbeltFlash">SNAP</div>
+
+<main id="main">
+
+<section id="hero">
+  <div class="hero-lines" aria-live="polite">
+    <div class="hero-line" id="hl1">THE NEXT ACCIDENT HAS NOT HAPPENED YET.</div>
+    <div class="hero-line two" id="hl2">WHAT YOU DO IN THE NEXT 5 SECONDS CAN CHANGE THAT.</div>
+  </div>
+  <div class="scroll-hint">SCROLL TO SURVIVE ▾</div>
+</section>
+
+<section id="impact" data-nav="Impact Timeline">
+  <div class="section-inner">
+    <div class="eyebrow reveal">Impact &amp; Prevention</div>
+    <h2 class="title reveal">Prevention begins before impact.</h2>
+    <p class="lead reveal">A near-collision unfolds across seconds, not milliseconds. Scroll through the timeline — every stage is a point where a different choice changes the outcome.</p>
+    <div class="impact-track reveal">
+      <div class="impact-card"><div class="t mono">T − 5s</div><h4>Attention state</h4><p>Driver is scanning the road. Awareness is highest here — this is the safest place to intervene.</p></div>
+      <div class="impact-card"><div class="t mono">T − 4s</div><h4>Distraction event</h4><p>A phone notification or conversation briefly pulls visual and cognitive attention off the road.</p></div>
+      <div class="impact-card"><div class="t mono">T − 3s</div><h4>Hazard appears</h4><p>A pedestrian, vehicle, or obstacle enters the path. Detection is delayed if attention hasn't returned.</p></div>
+      <div class="impact-card"><div class="t mono">T − 2s</div><h4>Reaction delay</h4><p>Perception–reaction time (commonly modeled around ~1–1.5s for alert drivers) begins to elapse.</p></div>
+      <div class="impact-card"><div class="t mono">T − 1s</div><h4>Brake / steer</h4><p>Braking force and steering input begin. Vehicle speed and road grip shape how much distance is recovered.</p></div>
+      <div class="impact-card"><div class="t mono">T = 0</div><h4>Outcome</h4><p>Whether the vehicle stops in time depends on everything upstream — speed, attention, road condition, and fitness.</p></div>
+    </div>
+    <p class="note">Educational approximation only — not an accident reconstruction tool. Individual reaction times vary with alertness, age, and visibility.</p>
+  </div>
+</section>
+
+<section id="risks" data-nav="Invisible Risks">
+  <div class="section-inner">
+    <div class="eyebrow reveal">Invisible Risks Lab</div>
+    <h2 class="title reveal">The risks we rarely talk about.</h2>
+    <p class="lead reveal">Click a specimen to open its file. These are systemic and medical factors that rarely make it into everyday road-safety conversation.</p>
+    <div class="grid g3 reveal" id="labCards">
+      <div class="panel lab-card"><span class="scan"></span><h4>Driver medical fitness</h4><p>Vision, hearing, and cardiovascular health all shape a driver's ability to detect and respond to hazards in time.</p>
+        <div class="lab-detail">Periodic medical screening — especially for commercial and professional drivers — is a recognised element of many road-safety frameworks worldwide, alongside vehicle and road engineering measures.</div></div>
+      <div class="panel lab-card"><span class="scan"></span><h4>Sleep, airway &amp; alertness</h4><p>Untreated sleep-disordered breathing can affect daytime alertness relevant to driving.</p>
+        <div class="lab-detail">The uvula is the small soft-tissue structure visible at the back of the mouth. Airway anatomy is one factor clinicians may consider in a broader assessment of obstructive sleep apnea risk — it is not, on its own, a test of fitness to drive. Severe untreated sleep apnea can cause excessive daytime sleepiness, which is relevant to driving safety and is best evaluated through a proper clinical sleep assessment, not self-diagnosis.</div></div>
+      <div class="panel lab-card"><span class="scan"></span><h4>Medication &amp; impairment</h4><p>Certain medications, alcohol, and drugs slow reaction time and impair judgment.</p>
+        <div class="lab-detail">Many medicine labels carry driving-related warnings. Combining sedating medication with alcohol compounds impairment. Impairment is a leading contributor to crash risk globally.</div></div>
+      <div class="panel lab-card"><span class="scan"></span><h4>Fatigue &amp; microsleep</h4><p>A few seconds of lost awareness at speed can translate into tens of metres of uncontrolled travel.</p>
+        <div class="lab-detail">Explore the full interactive simulator further down this page.</div></div>
+      <div class="panel lab-card"><span class="scan"></span><h4>Vehicle condition</h4><p>Worn tyres, failing brakes, and poor maintenance quietly erode the safety margin every driver relies on.</p>
+        <div class="lab-detail">Routine fitness checks for brakes, tyres, lights, and steering are a basic but often-skipped line of defence.</div></div>
+      <div class="panel lab-card"><span class="scan"></span><h4>Road &amp; system design</h4><p>Blind curves, poor lighting, and missing signage shift responsibility from the individual to the system.</p>
+        <div class="lab-detail">Explore the Road Engineering Lab further down this page for a hands-on view of design-level risk.</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="microsleep" data-nav="Microsleep">
+  <div class="section-inner">
+    <div class="eyebrow reveal">Microsleep Simulator</div>
+    <h2 class="title reveal">Five seconds. A completely different destination.</h2>
+    <p class="lead reveal">Choose a speed and a lapse duration. Distance travelled = speed × time — watch how far a vehicle drifts while awareness is gone.</p>
+    <div class="panel reveal">
+      <div class="msleep-controls">
+        <div class="msleep-group">
+          <label>Speed</label>
+          <div class="btnrow" id="speedChips">
+            <button class="chip" data-speed="40">40 km/h</button>
+            <button class="chip active" data-speed="60">60 km/h</button>
+            <button class="chip" data-speed="80">80 km/h</button>
+            <button class="chip" data-speed="100">100 km/h</button>
+          </div>
+        </div>
+        <div class="msleep-group">
+          <label>Lapse duration</label>
+          <div class="btnrow" id="durChips">
+            <button class="chip" data-dur="2">2s</button>
+            <button class="chip active" data-dur="3">3s</button>
+            <button class="chip" data-dur="4">4s</button>
+            <button class="chip" data-dur="5">5s</button>
+          </div>
+        </div>
+      </div>
+      <div class="roadbar" id="roadbar">
+        <div class="dash"></div>
+        <div class="car" id="msCar" style="left:4%;">🚗</div>
+        <div class="veil" id="msVeil"></div>
+      </div>
+      <div id="msleepResult" class="mono">Press "Run microsleep" to simulate.</div>
+      <div class="btnrow"><button class="chip" id="runMsleep">Run microsleep</button></div>
+    </div>
+  </div>
+</section>
+
+<section id="fatigue" data-nav="Fatigue">
+  <div class="section-inner">
+    <div class="eyebrow reveal">Truck &amp; Bus Driver Fatigue</div>
+    <h2 class="title reveal">Fatigue is a system failure, not just a personal one.</h2>
+    <p class="lead reveal">Long shifts, monotonous night driving, and schedule pressure compound over a working day. Hover a period below to see how alertness commonly trends across a demanding shift.</p>
+    <div class="panel reveal">
+      <div class="fatigue-timeline" id="fatigueTimeline">
+        <div class="slot active" data-level="20" data-txt="Alert. Full attention, wide visual scanning.">Morning start</div>
+        <div class="slot" data-level="35" data-txt="Steady. Sustained monotony begins to set in on long highway stretches.">Midday driving</div>
+        <div class="slot" data-level="55" data-txt="Elevated. Post-lunch dip and cumulative hours reduce alertness in many drivers.">Afternoon</div>
+        <div class="slot" data-level="70" data-txt="Declining. Night driving reduces visibility and coincides with natural circadian dips.">Evening / night</div>
+        <div class="slot" data-level="90" data-txt="High. Extended shifts without adequate rest are strongly associated with elevated fatigue-related risk.">Overnight / overtime</div>
+      </div>
+      <div class="meter"><i id="fatigueMeter" style="width:20%"></i></div>
+      <p class="note" id="fatigueTxt">Alert. Full attention, wide visual scanning.</p>
+      <p class="sourcefoot">Illustrative pattern for education, not measured telemetry. Organisational scheduling, rest infrastructure, and workload — not just individual willpower — shape fatigue outcomes.</p>
+    </div>
+  </div>
+</section>
+
+<section id="wrongside" data-nav="Wrong-side">
+  <div class="section-inner">
+    <div class="eyebrow reveal">Conflict Geometry</div>
+    <h2 class="title reveal">Wrong-side driving creates multiple conflicts at once.</h2>
+    <p class="lead reveal">Move your cursor left and right over the canvas to steer the wrong-side vehicle and see how many simultaneous conflict paths it opens against oncoming traffic.</p>
+    <canvas id="wrongsideCanvas" class="scenecanvas reveal" aria-label="Interactive wrong-side driving conflict diagram"></canvas>
+  </div>
+</section>
+
+<section id="seatbelt" data-nav="Seat belts">
+  <div class="section-inner">
+    <div class="eyebrow reveal">Rear-Seat Reality</div>
+    <h2 class="title reveal">The back seat is not a safe zone without a belt.</h2>
+    <p class="lead reveal">Toggle restraint state, then trigger a sudden stop to compare the conceptual motion of a belted versus unbelted rear passenger.</p>
+    <div class="cabin-wrap reveal">
+      <div class="cabin-view panel">
+        <canvas id="cabinCanvas" class="scenecanvas" style="height:260px" aria-label="Vehicle cabin restraint diagram"></canvas>
+        <div class="btnrow">
+          <button class="chip active" id="beltOn">Restrained</button>
+          <button class="chip" id="beltOff">Unrestrained</button>
+          <button class="chip" id="brakeNow">Sudden stop</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="helmet" data-nav="Helmet">
+  <div class="section-inner">
+    <div class="eyebrow reveal">Helmet Scanner</div>
+    <h2 class="title reveal">Helmet on. Strap locked. Every ride.</h2>
+    <p class="lead reveal">Move your cursor across the scanner to rotate the inspection light. Switch modes to check fit, strap, coverage, and visible damage.</p>
+    <canvas id="helmetCanvas" class="scenecanvas reveal" aria-label="Interactive helmet inspection scanner"></canvas>
+    <div class="btnrow reveal" id="helmetModes">
+      <button class="chip active" data-mode="fit">Fit</button>
+      <button class="chip" data-mode="strap">Strap</button>
+      <button class="chip" data-mode="coverage">Coverage</button>
+      <button class="chip" data-mode="damage">Damage</button>
+    </div>
+    <p class="note">This tool demonstrates general inspection concepts only and does not certify compliance with any specific standard.</p>
+  </div>
+</section>
+
+<section id="pedestrian" data-nav="Visibility">
+  <div class="section-inner">
+    <div class="eyebrow reveal">Pedestrian Visibility</div>
+    <h2 class="title reveal">See the pedestrian before it is too late.</h2>
+    <p class="lead reveal">Move your cursor across the dark road to control the headlight beam. Raise the speed slider and watch the safe reaction window shrink.</p>
+    <canvas id="pedCanvas" class="scenecanvas reveal" style="height:320px" aria-label="Interactive night-driving visibility scene"></canvas>
+    <div class="btnrow reveal">
+      <label class="mono" style="align-self:center;">Speed: <span id="pedSpeedVal">40</span> km/h</label>
+      <input type="range" id="pedSpeed" min="20" max="100" value="40" style="width:220px;">
+    </div>
+    <p class="note" id="pedNote">At 40 km/h an alert driver has a wider margin to detect and react to an unlit obstacle.</p>
+  </div>
+</section>
+
+<section id="roadeng" data-nav="Road Design">
+  <div class="section-inner">
+    <div class="eyebrow reveal">Road Engineering Lab</div>
+    <h2 class="title reveal">Design decides who survives a mistake.</h2>
+    <p class="lead reveal">Hover a hotspot on the mini network to inspect a known design risk, then toggle to see a safer alternative treatment.</p>
+    <svg id="roadEngSvg" viewBox="0 0 600 240" class="reveal" style="width:100%; height:260px; background:#050a13; border:1px solid var(--border); border-radius:12px;"></svg>
+    <div class="btnrow reveal"><button class="chip" id="toggleSafe">Show safer design</button></div>
+    <p class="note" id="roadEngNote">Hover a marker for details.</p>
+  </div>
+</section>
+
+<section id="dataroom" data-nav="Data Room">
+  <div class="section-inner">
+    <div class="eyebrow reveal">India Road Safety Control Room</div>
+    <h2 class="title reveal">Understanding the scale of the problem.</h2>
+    <p class="lead reveal">India has for years recorded among the highest absolute numbers of road-traffic deaths reported worldwide, according to the Ministry of Road Transport and Highways' annual "Road Accidents in India" reports and WHO global road-safety status reports. Hover the legend to explore illustrative category weightings below.</p>
+    <div class="grid g4 reveal">
+      <div class="panel"><span class="scan"></span><div class="statnum" id="statA">—</div><div class="statlbl">Two-wheeler share of fatalities (illustrative)</div></div>
+      <div class="panel"><span class="scan"></span><div class="statnum" id="statB">—</div><div class="statlbl">Pedestrian &amp; cyclist share (illustrative)</div></div>
+      <div class="panel"><span class="scan"></span><div class="statnum" id="statC">—</div><div class="statlbl">National highway crash share (illustrative)</div></div>
+      <div class="panel"><span class="scan"></span><div class="statnum" id="statD">—</div><div class="statlbl">Night-time crash share (illustrative)</div></div>
+    </div>
+    <canvas id="dataChart" class="scenecanvas reveal" style="margin-top:20px" aria-label="Illustrative category chart"></canvas>
+    <p class="sourcefoot reveal">Category weightings above are simplified, clearly-labelled illustrative figures for this demo — for verified national statistics, refer to MoRTH's "Road Accidents in India" reports, NCRB, and WHO's Global Status Report on Road Safety.</p>
+  </div>
+</section>
+
+<section id="indiamap" data-nav="India Map">
+  <div class="section-inner">
+    <div class="eyebrow reveal">Holographic Network</div>
+    <h2 class="title reveal">A country, connected by road.</h2>
+    <p class="lead reveal">A stylised, illustrative node map of major urban centres — not a representation of real per-state crash data.</p>
+    <svg id="indiaSvg" viewBox="0 0 500 520" class="reveal" style="width:100%; max-width:480px; margin:0 auto; display:block; height:460px;"></svg>
+  </div>
+</section>
+
+<section id="posters" data-nav="Posters">
+  <div class="poster-section">
+    <div class="poster-sticky">
+      <div class="section-inner" style="position:absolute; top:60px;">
+        <div class="eyebrow">Poster Tunnel</div>
+        <h2 class="title" style="margin-bottom:0;">Scroll through the campaign.</h2>
+      </div>
+      <div class="poster-track" id="posterTrack"></div>
+    </div>
+  </div>
+</section>
+
+<section id="orbit" data-nav="Resources">
+  <div class="section-inner">
+    <div class="eyebrow reveal">Government Resource Orbit</div>
+    <h2 class="title reveal">Awareness, connected to action.</h2>
+    <p class="lead reveal">Drag the ring, or click a portal to open the official resource in a new tab.</p>
+    <div class="orbit-wrap reveal" id="orbitWrap">
+      <div class="orbit-ring r1"></div>
+      <div class="orbit-ring r2"></div>
+      <div class="orbit-center">OFFICIAL<br>RESOURCES</div>
+      <div class="orbit-nodes" id="orbitNodes"></div>
+    </div>
+  </div>
+</section>
+
+<section id="cockpit" data-nav="Cockpit">
+  <div class="section-inner">
+    <div class="eyebrow reveal">Cockpit View</div>
+    <h2 class="title reveal">Perspective changes everything.</h2>
+    <p class="lead reveal">Scroll through a short drive. Watch how attention, weather, and following distance interact in real time.</p>
+    <div class="cockpit reveal" id="cockpit">
+      <canvas id="cockpitCanvas" style="position:absolute; inset:0; width:100%; height:100%;"></canvas>
+      <div class="hud-item" style="top:16px; left:16px;" id="hudSpeed">SPEED 58 km/h</div>
+      <div class="hud-item" style="top:16px; right:16px;" id="hudFollow">FOLLOW DIST 32m</div>
+      <div class="hud-item" style="bottom:170px; left:16px;" id="hudBelt">SEATBELT: ON</div>
+      <div class="event-badge" id="cockpitEvent">PHONE NOTIFICATION</div>
+      <div class="dash"></div>
+    </div>
+    <div class="btnrow reveal">
+      <button class="chip" data-ev="phone">Trigger phone event</button>
+      <button class="chip" data-ev="ped">Trigger pedestrian</button>
+      <button class="chip" data-ev="brake">Trigger hard brake</button>
+      <button class="chip" data-ev="fog">Toggle fog</button>
+      <button class="chip" data-ev="rain">Toggle rain</button>
+      <button class="chip" data-ev="blind">Truck blind spot</button>
+    </div>
+  </div>
+</section>
+
+<section id="simulator" data-nav="What If">
+  <div class="section-inner">
+    <div class="eyebrow reveal">What If? Prevention Simulator</div>
+    <h2 class="title reveal">Speed, reaction time, and road grip — visualised together.</h2>
+    <p class="lead reveal">Adjust the dials. The road diagram updates instantly with reaction distance, braking distance, and whether the vehicle stops before a fixed 45m obstacle.</p>
+    <div class="grid g4 reveal">
+      <div>
+        <div class="dial"><input type="range" id="dSpeed" min="20" max="120" value="60"><div class="needle" id="nSpeed"></div><div class="val"><span id="vSpeed">60</span> km/h</div></div>
+        <div class="statlbl" style="text-align:center;">Speed</div>
+      </div>
+      <div>
+        <div class="dial"><input type="range" id="dReact" min="5" max="30" value="15"><div class="needle" id="nReact"></div><div class="val"><span id="vReact">1.5</span> s</div></div>
+        <div class="statlbl" style="text-align:center;">Reaction time</div>
+      </div>
+      <div>
+        <div class="dial"><input type="range" id="dRoad" min="0" max="2" value="0" step="1"><div class="needle" id="nRoad"></div><div class="val" id="vRoad">Dry</div></div>
+        <div class="statlbl" style="text-align:center;">Road condition</div>
+      </div>
+      <div>
+        <div class="dial"><input type="range" id="dVis" min="0" max="2" value="0" step="1"><div class="needle" id="nVis"></div><div class="val" id="vVis">Clear</div></div>
+        <div class="statlbl" style="text-align:center;">Visibility</div>
+      </div>
+    </div>
+    <div class="simroad reveal" id="simRoad">
+      <div class="zone" id="reactZone" style="left:10px; background:var(--amber);"></div>
+      <div class="zone" id="brakeZone" style="background:var(--danger);"></div>
+      <div class="obstacle">🚧</div>
+      <div class="simcar" id="simCar">🚗</div>
+    </div>
+    <div class="grid g3 reveal" style="margin-top:16px;">
+      <div class="panel"><div class="statnum" id="outReact">—</div><div class="statlbl">Reaction distance (m)</div></div>
+      <div class="panel"><div class="statnum" id="outBrake">—</div><div class="statlbl">Braking distance (m)</div></div>
+      <div class="panel"><div class="statnum" id="outTotal">—</div><div class="statlbl">Total stopping distance (m)</div></div>
+    </div>
+    <p class="note">Educational approximation using simplified physics (reaction distance = speed × reaction time; braking distance derived from a friction-based estimate). Not an accident-reconstruction or engineering tool.</p>
+  </div>
+</section>
+
+<section id="emergency" data-nav="Emergency">
+  <div class="section-inner">
+    <div class="eyebrow reveal">Emergency Response Timeline</div>
+    <h2 class="title reveal">Outcomes depend on response, too.</h2>
+    <p class="lead reveal">Hover each stage of the post-crash chain to see why every link matters.</p>
+    <div class="timeline-h reveal" id="emergencyTl">
+      <div class="tl-step active"><div class="node"></div><h5>Crash</h5><div class="info">The event occurs — the clock for effective response starts immediately.</div></div>
+      <div class="tl-step"><div class="node"></div><h5>Detection</h5><div class="info">Bystanders, connected vehicles, or automated systems recognise something has happened.</div></div>
+      <div class="tl-step"><div class="node"></div><h5>Emergency call</h5><div class="info">A call is placed to emergency services — clarity on what happened matters here.</div></div>
+      <div class="tl-step"><div class="node"></div><h5>Location ID</h5><div class="info">Accurately identifying the location is often one of the biggest delays in rural or highway stretches.</div></div>
+      <div class="tl-step"><div class="node"></div><h5>First response</h5><div class="info">Bystander first aid and scene safety in the first minutes can meaningfully affect outcomes.</div></div>
+      <div class="tl-step"><div class="node"></div><h5>Ambulance</h5><div class="info">Time to a properly equipped ambulance is a key determinant of trauma outcomes.</div></div>
+      <div class="tl-step"><div class="node"></div><h5>Trauma care</h5><div class="info">Access to a trauma-capable facility completes the chain of survival.</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="finale" data-nav="Safe City">
+  <div class="section-inner finale">
+    <div class="fline" id="f1">ROAD DEATHS ARE NOT JUST NUMBERS.</div>
+    <div class="fline" id="f2">EVERY SAFE JOURNEY IS A FUTURE THAT CONTINUES.</div>
+    <div class="fline" id="f3">INDIA CAN BUILD SAFER ROADS.<br>INDIA CAN BUILD SAFER SYSTEMS.<br>INDIA CAN SAVE LIVES.</div>
+    <div class="action-row" id="actionRow">
+      <span>DRIVE ALERT</span><span>RIDE PROTECTED</span><span>DESIGN SAFER ROADS</span><span>RESPOND FASTER</span><span>SAVE LIVES</span>
+    </div>
+    <div class="signature" id="signature">MADE BY AKSHAY</div>
+  </div>
+</section>
+
+</main>
+
+<script>
+(function(){
+"use strict";
+const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
+const bgCanvas = document.getElementById('bgCanvas');
+const bctx = bgCanvas.getContext('2d');
+let W=0,H=0,DPR=Math.min(window.devicePixelRatio||1,2);
+function resize(){
+  W=window.innerWidth; H=window.innerHeight;
+  bgCanvas.width=W*DPR; bgCanvas.height=H*DPR; bgCanvas.style.width=W+'px'; bgCanvas.style.height=H+'px';
+  bctx.setTransform(DPR,0,0,DPR,0,0);
+}
+window.addEventListener('resize',resize); resize();
+
+let mouseX=W/2, mouseY=H/2, prevMouseX=mouseX, prevMouseY=mouseY, mouseVX=0, mouseVY=0;
+window.addEventListener('mousemove',e=>{ mouseX=e.clientX; mouseY=e.clientY; });
+window.addEventListener('mouseleave',()=>{});
+
+let scrollY=window.scrollY, prevScrollY=scrollY, scrollVel=0;
+const docHeight = ()=> document.documentElement.scrollHeight - window.innerHeight;
+const progressbar = document.getElementById('progressbar');
+window.addEventListener('scroll',()=>{ scrollY=window.scrollY; },{passive:true});
+
+let particles = [];
+const PCOUNT = reduced? 0 : (isTouch? 40:90);
+for(let i=0;i<PCOUNT;i++){
+  particles.push({x:Math.random()*W,y:Math.random()*H,z:Math.random()*1+0.3,r:Math.random()*1.6+0.4});
+}
+let roadOffset=0;
+let worldMode='dark';
+
+function setWorldMode(m){ worldMode=m; }
+window.__setWorldMode = setWorldMode;
+
+function drawBackground(dt){
+  bctx.clearRect(0,0,W,H);
+  const g = bctx.createLinearGradient(0,0,0,H);
+  if(worldMode==='safe'){
+    g.addColorStop(0,'#081018'); g.addColorStop(1,'#0c1a1a');
+  } else {
+    g.addColorStop(0,'#05070d'); g.addColorStop(1,'#0a0f1c');
+  }
+  bctx.fillStyle=g; bctx.fillRect(0,0,W,H);
+
+  const speedFactor = 1 + Math.min(Math.abs(scrollVel)/40,3);
+  roadOffset += (2*speedFactor)*(dt/16);
+  bctx.save();
+  bctx.strokeStyle = worldMode==='safe' ? 'rgba(62,213,152,0.35)' : 'rgba(79,227,196,0.18)';
+  bctx.lineWidth=1.4;
+  const horizon = H*0.62;
+  const roadHalfTop=18, roadHalfBottom=W*0.55;
+  bctx.beginPath();
+  bctx.moveTo(W/2-roadHalfTop,horizon); bctx.lineTo(W/2-roadHalfBottom,H);
+  bctx.moveTo(W/2+roadHalfTop,horizon); bctx.lineTo(W/2+roadHalfBottom,H);
+  bctx.stroke();
+  const dashCount=14;
+  for(let i=0;i<dashCount;i++){
+    let t = ((i/dashCount) + (roadOffset/900))%1;
+    let y = horizon + t*t*(H-horizon);
+    let halfw = roadHalfTop + (roadHalfBottom-roadHalfTop)*t*t;
+    let dashH = 2+ t*10;
+    bctx.fillStyle = `rgba(255,180,84,${0.15+0.5*t})`;
+    bctx.fillRect(W/2-2*t,y,4*t+1,dashH);
+  }
+  bctx.restore();
+
+  bctx.fillStyle='rgba(255,255,255,0.55)';
+  for(const p of particles){
+    p.y += (0.15+0.4*p.z) * (1+speedFactor*0.6) * (dt/16);
+    p.x += mouseVX*0.002*p.z;
+    if(p.y>H){p.y=-4; p.x=Math.random()*W;}
+    bctx.globalAlpha = 0.25+0.5*p.z;
+    bctx.beginPath(); bctx.arc(p.x,p.y,p.r,0,Math.PI*2); bctx.fill();
+  }
+  bctx.globalAlpha=1;
+}
+
+const avatarSvg = document.getElementById('avatarSvg');
+const avHead = document.getElementById('avHead');
+const avArmL = document.getElementById('avArmL');
+const avArmR = document.getElementById('avArmR');
+const avLegL = document.getElementById('avLegL');
+const avLegR = document.getElementById('avLegR');
+let avX=W/2, avY=H*0.3, avVX=0, avVY=0;
+let landed=false;
+
+function updateAvatar(dt){
+  if(isTouch || reduced) return;
+  const targetX = mouseX-32, targetY = landed? mouseY-96 : mouseY-140;
+  const stiffness=0.012*dt, damp=0.86;
+  avVX += (targetX-avX)*stiffness; avVX*=damp;
+  avVY += (targetY-avY)*stiffness; avVY*=damp;
+  avX+=avVX; avY+=avVY;
+  const speed = Math.hypot(avVX,avVY);
+  const tilt = Math.max(-30,Math.min(30, avVX*0.9));
+  avatarSvg.style.transform = `translate(${avX}px,${avY}px) rotate(${tilt}deg) scale(${landed?0.9:1})`;
+  const lag = Math.min(14, speed*0.6);
+  avArmL.setAttribute('x2', 14 - lag*Math.sign(avVX||1));
+  avArmR.setAttribute('x2', 50 + lag*Math.sign(avVX||1));
+  avLegL.setAttribute('x2', 18 - lag*0.4*Math.sign(avVX||1));
+  avLegR.setAttribute('x2', 46 + lag*0.4*Math.sign(avVX||1));
+  const opacity = landed? 1 : Math.max(0.55, 1-Math.min(speed/40,0.45));
+  avatarSvg.style.opacity = opacity;
+}
+
+let lastT=performance.now();
+function loop(t){
+  const dt = Math.min(40,t-lastT); lastT=t;
+  mouseVX = mouseX-prevMouseX; mouseVY = mouseY-prevMouseY;
+  prevMouseX=mouseX; prevMouseY=mouseY;
+  scrollVel = scrollY-prevScrollY; prevScrollY=scrollY;
+  const dh = docHeight();
+  if(progressbar) progressbar.style.width = (dh>0? (scrollY/dh*100):0)+'%';
+  drawBackground(dt);
+  updateAvatar(dt);
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+const revealEls = document.querySelectorAll('.reveal');
+const io = new IntersectionObserver((entries)=>{
+  entries.forEach(en=>{ if(en.isIntersecting) en.target.classList.add('in'); });
+},{threshold:0.15});
+revealEls.forEach(el=>io.observe(el));
+
+document.querySelectorAll('.panel').forEach(p=>{
+  p.addEventListener('mousemove',e=>{
+    const r=p.getBoundingClientRect();
+    const px=(e.clientX-r.left)/r.width, py=(e.clientY-r.top)/r.height;
+    p.style.setProperty('--mx',(px*100)+'%'); p.style.setProperty('--my',(py*100)+'%');
+    const rx=(py-0.5)*-8, ry=(px-0.5)*10;
+    p.style.transform = `perspective(700px) rotateX(${rx}deg) rotateY(${ry}deg) translateZ(6px)`;
+  });
+  p.addEventListener('mouseleave',()=>{ p.style.transform='perspective(700px) rotateX(0) rotateY(0)'; });
+});
+
+const navSections = Array.from(document.querySelectorAll('section[data-nav]'));
+const hudNav = document.getElementById('hudNav');
+navSections.forEach((s)=>{
+  const b=document.createElement('button');
+  b.innerHTML = `<span class="lbl">${s.dataset.nav}</span>`;
+  b.setAttribute('aria-label',s.dataset.nav);
+  b.addEventListener('click',()=> s.scrollIntoView({behavior: reduced? 'auto':'smooth'}));
+  hudNav.appendChild(b);
+});
+const navIo = new IntersectionObserver((entries)=>{
+  entries.forEach(en=>{
+    const idx = navSections.indexOf(en.target);
+    if(en.isIntersecting){ hudNav.children[idx].classList.add('active'); }
+    else{ hudNav.children[idx].classList.remove('active'); }
+  });
+},{threshold:0.5});
+navSections.forEach(s=>navIo.observe(s));
+
+document.addEventListener('keydown',(e)=>{
+  if(e.key!=='ArrowDown' && e.key!=='ArrowUp') return;
+  const mid = window.scrollY + window.innerHeight/2;
+  let idx = navSections.findIndex(s=> s.offsetTop>mid);
+  if(e.key==='ArrowUp'){
+    idx = navSections.map(s=>s.offsetTop).filter(t=>t<mid-10).length-1;
+    if(idx<0) idx=0;
+  } else if(idx<0) idx=navSections.length-1;
+  navSections[idx].scrollIntoView({behavior: reduced? 'auto':'smooth'});
+});
+
+function typeReveal(el,delay){ setTimeout(()=>el.classList.add('show'),delay); }
+typeReveal(document.getElementById('hl1'),400);
+typeReveal(document.getElementById('hl2'),1600);
+
+document.querySelectorAll('.lab-card').forEach(c=>{
+  c.addEventListener('click',()=> c.classList.toggle('open'));
+});
+
+const speedChips = document.getElementById('speedChips');
+const durChips = document.getElementById('durChips');
+let msSpeed=60, msDur=3;
+speedChips.addEventListener('click',e=>{
+  if(e.target.tagName!=='BUTTON') return;
+  speedChips.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
+  e.target.classList.add('active'); msSpeed=+e.target.dataset.speed;
+});
+durChips.addEventListener('click',e=>{
+  if(e.target.tagName!=='BUTTON') return;
+  durChips.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
+  e.target.classList.add('active'); msDur=+e.target.dataset.dur;
+});
+document.getElementById('runMsleep').addEventListener('click',()=>{
+  const veil=document.getElementById('msVeil'), car=document.getElementById('msCar'), res=document.getElementById('msleepResult');
+  const distance = (msSpeed*1000/3600)*msDur;
+  const roadMetres=120;
+  const startPct=4, endPct=Math.min(94, startPct + (distance/roadMetres)*90);
+  car.style.left=startPct+'%';
+  res.textContent='Microsleep in progress...';
+  veil.classList.add('on');
+  setTimeout(()=>{
+    car.style.transition='left '+msDur+'s linear';
+    car.style.left=endPct+'%';
+  },50);
+  setTimeout(()=>{
+    veil.classList.remove('on');
+    res.textContent = `At ${msSpeed} km/h, a ${msDur}s lapse covers ≈ ${distance.toFixed(1)} metres — travelled with zero conscious control.`;
+  }, msDur*1000+120);
+});
+
+const fatigueTimeline=document.getElementById('fatigueTimeline');
+fatigueTimeline.addEventListener('mouseover',e=>{
+  const slot=e.target.closest('.slot'); if(!slot) return;
+  fatigueTimeline.querySelectorAll('.slot').forEach(s=>s.classList.remove('active'));
+  slot.classList.add('active');
+  document.getElementById('fatigueMeter').style.width=slot.dataset.level+'%';
+  document.getElementById('fatigueTxt').textContent=slot.dataset.txt;
+});
+
+function makeCanvasCtx(id){
+  const c=document.getElementById(id);
+  function fit(){
+    const r=c.getBoundingClientRect();
+    c.width=r.width*DPR; c.height=r.height*DPR;
+    const ctx=c.getContext('2d'); ctx.setTransform(DPR,0,0,DPR,0,0);
+    return {ctx,w:r.width,h:r.height};
+  }
+  return {canvas:c, fit};
+}
+
+const wsCtl = makeCanvasCtx('wrongsideCanvas');
+let wsX=0.5;
+document.getElementById('wrongsideCanvas').addEventListener('mousemove',e=>{
+  const r=e.target.getBoundingClientRect(); wsX = Math.min(1,Math.max(0,(e.clientX-r.left)/r.width));
+});
+function drawWrongSide(){
+  const {ctx,w,h}=wsCtl.fit();
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle='#050a13'; ctx.fillRect(0,0,w,h);
+  ctx.strokeStyle='rgba(255,255,255,0.15)'; ctx.lineWidth=2;
+  ctx.setLineDash([14,10]);
+  ctx.beginPath(); ctx.moveTo(0,h/2); ctx.lineTo(w,h/2); ctx.stroke();
+  ctx.setLineDash([]);
+  const laneY1=h*0.28, laneY2=h*0.72;
+  const oncomingCount=5;
+  ctx.fillStyle='#4fe3c4';
+  for(let i=0;i<oncomingCount;i++){
+    const x = w - ((performance.now()/12 + i*140)%(w+140));
+    ctx.beginPath(); ctx.arc(x,laneY1,7,0,Math.PI*2); ctx.fill();
+  }
+  const wsCarX = wsX*w;
+  const wsCarY = laneY1 + (laneY2-laneY1)*0.5;
+  ctx.fillStyle='#ff4d5e';
+  ctx.beginPath(); ctx.arc(wsCarX,wsCarY,9,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='rgba(255,77,94,0.5)'; ctx.lineWidth=1;
+  for(let i=0;i<oncomingCount;i++){
+    const x = w - ((performance.now()/12 + i*140)%(w+140));
+    ctx.beginPath(); ctx.moveTo(wsCarX,wsCarY); ctx.lineTo(x,laneY1); ctx.stroke();
+  }
+  requestAnimationFrame(drawWrongSide);
+}
+drawWrongSide();
+
+const cabinCtl = makeCanvasCtx('cabinCanvas');
+let beltState='on', braking=false, brakeT=0;
+document.getElementById('beltOn').addEventListener('click',e=>{beltState='on'; toggleBeltBtns(e.target);});
+document.getElementById('beltOff').addEventListener('click',e=>{beltState='off'; toggleBeltBtns(e.target);});
+function toggleBeltBtns(active){ document.getElementById('beltOn').classList.toggle('active',active.id==='beltOn'); document.getElementById('beltOff').classList.toggle('active',active.id==='beltOff'); }
+document.getElementById('brakeNow').addEventListener('click',()=>{
+  braking=true; brakeT=0;
+  if(beltState==='on'){
+    const fl=document.getElementById('seatbeltFlash'); fl.classList.add('on');
+    setTimeout(()=>fl.classList.remove('on'),260);
+  }
+  setTimeout(()=>braking=false, 900);
+});
+function drawCabin(){
+  const {ctx,w,h}=cabinCtl.fit();
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle='#050a13'; ctx.fillRect(0,0,w,h);
+  ctx.strokeStyle='rgba(255,255,255,0.2)'; ctx.lineWidth=2;
+  ctx.strokeRect(w*0.1,h*0.15,w*0.8,h*0.7);
+  ctx.beginPath(); ctx.moveTo(w*0.5,h*0.15); ctx.lineTo(w*0.5,h*0.85); ctx.stroke();
+  brakeT += braking? 0.08:0;
+  const shift = braking? Math.sin(brakeT*10)*2 + brakeT*18 : 0;
+  ctx.fillStyle='#4fe3c4'; ctx.beginPath(); ctx.arc(w*0.3,h*0.35,10,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle= beltState==='on' ? '#3ed598' : '#ff4d5e';
+  const restrict = beltState==='on' ? Math.min(shift,10) : shift;
+  ctx.beginPath(); ctx.arc(w*0.7+restrict, h*0.35,10,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,0.6)'; ctx.font='11px monospace';
+  ctx.fillText('FRONT',w*0.24,h*0.28); ctx.fillText('REAR '+(beltState==='on'?'(belted)':'(unbelted)'),w*0.6,h*0.28);
+  if(beltState==='on'){
+    ctx.strokeStyle='rgba(62,213,152,0.6)'; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.moveTo(w*0.7-10,h*0.25); ctx.lineTo(w*0.7+10,h*0.45); ctx.stroke();
+  }
+  requestAnimationFrame(drawCabin);
+}
+drawCabin();
+
+const helmetCtl = makeCanvasCtx('helmetCanvas');
+let helmetMode='fit', lightAngle=0;
+document.getElementById('helmetCanvas').addEventListener('mousemove',e=>{
+  const r=e.target.getBoundingClientRect(); lightAngle=((e.clientX-r.left)/r.width-0.5)*Math.PI*1.4;
+});
+document.getElementById('helmetModes').addEventListener('click',e=>{
+  if(e.target.tagName!=='BUTTON') return;
+  document.querySelectorAll('#helmetModes button').forEach(b=>b.classList.remove('active'));
+  e.target.classList.add('active'); helmetMode=e.target.dataset.mode;
+});
+function drawHelmet(){
+  const {ctx,w,h}=helmetCtl.fit();
+  ctx.clearRect(0,0,w,h); ctx.fillStyle='#050a13'; ctx.fillRect(0,0,w,h);
+  const cx=w/2, cy=h/2+10, rad=Math.min(w,h)*0.28;
+  const grad=ctx.createRadialGradient(cx+Math.cos(lightAngle)*rad, cy+Math.sin(lightAngle)*rad*0.3, 4, cx,cy,rad*2.2);
+  grad.addColorStop(0,'rgba(255,180,84,0.5)'); grad.addColorStop(1,'rgba(255,180,84,0)');
+  ctx.fillStyle=grad; ctx.beginPath(); ctx.arc(cx,cy,rad*2.2,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='rgba(79,227,196,0.7)'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.arc(cx,cy,rad,Math.PI*0.9,Math.PI*2.1); ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(cx,cy+rad*0.55,rad*0.9,rad*0.3,0,0,Math.PI*2); ctx.stroke();
+  if(helmetMode==='fit'){
+    ctx.fillStyle='rgba(255,255,255,0.7)'; ctx.font='12px monospace'; ctx.fillText('Fit: check for snug, level, no forward tilt',cx-rad,cy+rad+30);
+  } else if(helmetMode==='strap'){
+    ctx.strokeStyle='#ffb454'; ctx.beginPath(); ctx.moveTo(cx-rad*0.7,cy+rad*0.2); ctx.lineTo(cx-rad*0.2,cy+rad*0.85); ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,0.7)'; ctx.font='12px monospace'; ctx.fillText('Strap: two fingers of slack, buckled under chin',cx-rad,cy+rad+30);
+  } else if(helmetMode==='coverage'){
+    ctx.fillStyle='rgba(79,227,196,0.12)'; ctx.beginPath(); ctx.arc(cx,cy,rad,Math.PI*0.9,Math.PI*2.1); ctx.lineTo(cx,cy); ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.7)'; ctx.font='12px monospace'; ctx.fillText('Coverage: full-face offers wider protection than half-shell',cx-rad,cy+rad+30);
+  } else {
+    ctx.strokeStyle='#ff4d5e'; ctx.beginPath(); ctx.moveTo(cx-rad*0.4,cy-rad*0.5); ctx.lineTo(cx-rad*0.1,cy-rad*0.1); ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,0.7)'; ctx.font='12px monospace'; ctx.fillText('Damage: replace after any visible crack or impact',cx-rad,cy+rad+30);
+  }
+  requestAnimationFrame(drawHelmet);
+}
+drawHelmet();
+
+const pedCtl = makeCanvasCtx('pedCanvas');
+let pedMX=0.5, pedMY=0.5, pedSpeed=40;
+document.getElementById('pedCanvas').addEventListener('mousemove',e=>{
+  const r=e.target.getBoundingClientRect(); pedMX=(e.clientX-r.left)/r.width; pedMY=(e.clientY-r.top)/r.height;
+});
+const pedSpeedInput=document.getElementById('pedSpeed');
+pedSpeedInput.addEventListener('input',()=>{
+  pedSpeed=+pedSpeedInput.value; document.getElementById('pedSpeedVal').textContent=pedSpeed;
+  const margin = pedSpeed<=40?'a wide':pedSpeed<=70?'a moderate':'a very narrow';
+  document.getElementById('pedNote').textContent = `At ${pedSpeed} km/h an alert driver has ${margin} margin to detect and react to an unlit obstacle.`;
+});
+const pedObjects=[{x:0.2,y:0.6,label:'Pedestrian'},{x:0.55,y:0.7,label:'Cyclist'},{x:0.8,y:0.5,label:'Debris'},{x:0.35,y:0.4,label:'Stray animal'}];
+function drawPed(){
+  const {ctx,w,h}=pedCtl.fit();
+  ctx.clearRect(0,0,w,h); ctx.fillStyle='#020408'; ctx.fillRect(0,0,w,h);
+  const beamR = Math.max(60,140-pedSpeed*0.4);
+  const grad=ctx.createRadialGradient(pedMX*w,pedMY*h,4,pedMX*w,pedMY*h,beamR);
+  grad.addColorStop(0,'rgba(255,240,200,0.9)'); grad.addColorStop(1,'rgba(255,240,200,0)');
+  ctx.fillStyle=grad; ctx.beginPath(); ctx.arc(pedMX*w,pedMY*h,beamR,0,Math.PI*2); ctx.fill();
+  pedObjects.forEach(o=>{
+    const dx=(o.x*w)-(pedMX*w), dy=(o.y*h)-(pedMY*h);
+    const dist=Math.hypot(dx,dy);
+    const vis = Math.max(0.06,1-dist/beamR);
+    ctx.fillStyle=`rgba(255,255,255,${vis})`;
+    ctx.beginPath(); ctx.arc(o.x*w,o.y*h,10,0,Math.PI*2); ctx.fill();
+    if(vis>0.4){ ctx.font='10px monospace'; ctx.fillText(o.label,o.x*w+12,o.y*h+4); }
+  });
+  requestAnimationFrame(drawPed);
+}
+drawPed();
+
+const svgNS='http://www.w3.org/2000/svg';
+const roadEngSvg=document.getElementById('roadEngSvg');
+const hotspots=[
+  {x:100,y:120,r:14,title:'Black spot',info:'High recurrence of crashes historically recorded at this junction.'},
+  {x:230,y:70,r:14,title:'Blind curve',info:'Restricted sightline hides oncoming traffic until very close range.'},
+  {x:360,y:150,r:14,title:'Missing signage',info:'No advance warning sign before a sharp lane merge.'},
+  {x:470,y:90,r:14,title:'Poor lighting',info:'Unlit stretch reduces pedestrian and hazard visibility at night.'},
+];
+let safeMode=false;
+function renderRoadEng(){
+  roadEngSvg.innerHTML='';
+  const path=document.createElementNS(svgNS,'path');
+  path.setAttribute('d', safeMode? 'M20,180 C150,120 250,60 320,90 S470,150 580,110' : 'M20,180 C150,60 250,180 320,60 S470,190 580,80');
+  path.setAttribute('stroke', safeMode? '#3ed598':'#4fe3c4');
+  path.setAttribute('stroke-width','6'); path.setAttribute('fill','none'); path.setAttribute('opacity','0.7');
+  roadEngSvg.appendChild(path);
+  hotspots.forEach(hs=>{
+    const c=document.createElementNS(svgNS,'circle');
+    c.setAttribute('cx',hs.x); c.setAttribute('cy',hs.y); c.setAttribute('r',hs.r);
+    c.setAttribute('fill', safeMode? 'rgba(62,213,152,0.25)':'rgba(255,77,94,0.35)');
+    c.setAttribute('stroke', safeMode?'#3ed598':'#ff4d5e'); c.style.cursor='pointer';
+    c.addEventListener('mouseenter',()=>{
+      document.getElementById('roadEngNote').textContent = `${hs.title}: ${hs.info}${safeMode? ' — shown here with a safer redesign.':''}`;
+    });
+    roadEngSvg.appendChild(c);
+  });
+}
+renderRoadEng();
+document.getElementById('toggleSafe').addEventListener('click',e=>{
+  safeMode=!safeMode; e.target.textContent = safeMode? 'Show original design':'Show safer design'; renderRoadEng();
+});
+
+const statTargets={statA:35,statB:20,statC:30,statD:45};
+let statsAnimated=false;
+const statIo=new IntersectionObserver(entries=>{
+  entries.forEach(en=>{
+    if(en.isIntersecting && !statsAnimated){
+      statsAnimated=true;
+      Object.keys(statTargets).forEach(id=>{
+        let cur=0; const tgt=statTargets[id]; const el=document.getElementById(id);
+        const iv=setInterval(()=>{ cur+=2; if(cur>=tgt){cur=tgt; clearInterval(iv);} el.textContent=cur+'%'; },30);
+      });
+    }
+  });
+},{threshold:0.4});
+statIo.observe(document.getElementById('dataroom'));
+
+const dataChartCtl=makeCanvasCtx('dataChart');
+function drawDataChart(){
+  const {ctx,w,h}=dataChartCtl.fit();
+  ctx.clearRect(0,0,w,h); ctx.fillStyle='#050a13'; ctx.fillRect(0,0,w,h);
+  const vals=[35,20,30,45]; const labels=['2W','Ped/Cyc','NH','Night'];
+  const bw=w/(vals.length*2);
+  vals.forEach((v,i)=>{
+    const bh=(v/50)*(h-40);
+    const x=i*(w/vals.length)+ (w/vals.length-bw)/2;
+    ctx.fillStyle=['#ff7a33','#ffb454','#4fe3c4','#ff4d5e'][i];
+    ctx.fillRect(x,h-30-bh,bw,bh);
+    ctx.fillStyle='rgba(255,255,255,0.7)'; ctx.font='11px monospace';
+    ctx.fillText(labels[i],x,h-12);
+  });
+  requestAnimationFrame(drawDataChart);
+}
+drawDataChart();
+
+const indiaSvg=document.getElementById('indiaSvg');
+const cities=[
+  {x:230,y:120,n:'Delhi'},{x:120,y:260,n:'Ahmedabad'},{x:160,y:340,n:'Mumbai'},
+  {x:300,y:300,n:'Hyderabad'},{x:210,y:400,n:'Bengaluru'},{x:260,y:420,n:'Chennai'},
+  {x:340,y:170,n:'Lucknow'},{x:340,y:250,n:'Kolkata'},
+];
+const outline=document.createElementNS(svgNS,'path');
+outline.setAttribute('d','M180,40 L260,60 L300,120 L340,160 L360,240 L320,320 L280,420 L230,470 L190,430 L160,340 L110,260 L100,160 L140,90 Z');
+outline.setAttribute('fill','rgba(79,227,196,0.05)'); outline.setAttribute('stroke','rgba(79,227,196,0.4)'); outline.setAttribute('stroke-width','1.5');
+indiaSvg.appendChild(outline);
+cities.forEach((c,i)=>{
+  const dot=document.createElementNS(svgNS,'circle');
+  dot.setAttribute('cx',c.x); dot.setAttribute('cy',c.y); dot.setAttribute('r','5');
+  dot.setAttribute('fill','#ffb454');
+  const anim=document.createElementNS(svgNS,'animate');
+  anim.setAttribute('attributeName','opacity'); anim.setAttribute('values','1;0.3;1');
+  anim.setAttribute('dur',(2+i*0.3)+'s'); anim.setAttribute('repeatCount','indefinite');
+  if(!reduced) dot.appendChild(anim);
+  indiaSvg.appendChild(dot);
+  const label=document.createElementNS(svgNS,'text');
+  label.setAttribute('x',c.x+8); label.setAttribute('y',c.y+4); label.setAttribute('fill','#93a2ba'); label.setAttribute('font-size','10'); label.textContent=c.n;
+  indiaSvg.appendChild(label);
+});
+
+const posters=[
+  {t:['YOUR MESSAGE CAN WAIT.','THE ROAD WILL NOT.'],c:'#1a2a3a'},
+  {t:['HELMET ON.','STRAP LOCKED.','EVERY RIDE.'],c:'#2a1a1a'},
+  {t:['THE BACK SEAT IS NOT A SAFE ZONE','WITHOUT A SEAT BELT.'],c:'#1a2a20'},
+  {t:['MICROSLEEP.','FIVE SECONDS.','A COMPLETELY DIFFERENT DESTINATION.'],c:'#241a2a'},
+  {t:['SPEED SAVES MINUTES.','CONTROL SAVES LIVES.'],c:'#2a2210'},
+  {t:['DO NOT DRIVE AGAINST TRAFFIC.','YOU ARE CREATING','A COLLISION COURSE.'],c:'#2a1616'},
+  {t:['THE ROAD IS SHARED.','NOT OWNED.'],c:'#152a28'},
+  {t:['CHECK THE DRIVER.','CHECK THE VEHICLE.','CHECK THE ROAD.'],c:'#1c2430'},
+  {t:['FATIGUE IS NOT WEAKNESS.','IT IS A SAFETY RISK.'],c:'#241f14'},
+  {t:['ONE HELMET. ONE STRAP.','ONE CHANCE THAT MATTERS.'],c:'#2a1a24'},
+  {t:['SEE THE PEDESTRIAN','BEFORE IT IS TOO LATE.'],c:'#101f2a'},
+  {t:['ROAD SAFETY IS A SYSTEM,','NOT A SLOGAN.'],c:'#1a2020'},
+];
+const posterTrack=document.getElementById('posterTrack');
+posters.forEach(p=>{
+  const d=document.createElement('div'); d.className='poster';
+  d.style.background=`linear-gradient(160deg, ${p.c}, #05070d)`;
+  d.innerHTML=`<span class="tag">Road Safety Campaign</span><h4>${p.t.join('<br>')}</h4>`;
+  posterTrack.appendChild(d);
+});
+const posterSection=document.getElementById('posters');
+window.addEventListener('scroll',()=>{
+  const rect=posterSection.getBoundingClientRect();
+  const total=rect.height-window.innerHeight;
+  if(total<=0) return;
+  let prog=(-rect.top)/total; prog=Math.max(0,Math.min(1,prog));
+  const maxScroll = posterTrack.scrollWidth - window.innerWidth + 160;
+  posterTrack.style.transform=`translateX(${-prog*maxScroll}px)`;
+},{passive:true});
+
+const orbitData=[
+  {n:'MoRTH — Road Transport & Highways',u:'https://morth.nic.in',d:'National road-transport policy and annual "Road Accidents in India" reports.'},
+  {n:'Parivahan / Sarathi',u:'https://parivahan.gov.in',d:'Driving licence, vehicle registration, and related transport services.'},
+  {n:'National Highways Authority',u:'https://nhai.gov.in',d:'Highway development, maintenance, and safety information.'},
+  {n:'eChallan',u:'https://echallan.parivahan.gov.in',d:'Traffic violation and challan information portal.'},
+  {n:'NCRB',u:'https://ncrb.gov.in',d:'National Crime Records Bureau — accidental death and injury data.'},
+  {n:'WHO Road Safety',u:'https://www.who.int/health-topics/road-safety',d:'Global road-safety guidance and status reports.'},
+];
+const orbitNodes=document.getElementById('orbitNodes');
+let orbitRotation=0;
+function layoutOrbit(){
+  orbitNodes.innerHTML='';
+  const n=orbitData.length;
+  orbitData.forEach((o,i)=>{
+    const angle = (i/n)*2*Math.PI + orbitRotation;
+    const radius=190;
+    const x=Math.cos(angle)*radius, y=Math.sin(angle)*radius*0.62;
+    const a=document.createElement('a');
+    a.className='orbit-node'; a.href=o.u; a.target='_blank'; a.rel='noopener noreferrer';
+    a.style.transform=`translate(${x-85}px, ${y-40}px)`;
+    a.innerHTML=`<b>${o.n}</b>${o.d}`;
+    orbitNodes.appendChild(a);
+  });
+}
+layoutOrbit();
+const orbitWrap=document.getElementById('orbitWrap');
+let dragStartX=null, dragStartRot=0;
+orbitWrap.addEventListener('pointerdown',e=>{ dragStartX=e.clientX; dragStartRot=orbitRotation; });
+window.addEventListener('pointermove',e=>{
+  if(dragStartX===null) return;
+  orbitRotation = dragStartRot + (e.clientX-dragStartX)*0.005;
+  layoutOrbit();
+});
+window.addEventListener('pointerup',()=>{ dragStartX=null; });
+orbitWrap.addEventListener('wheel',e=>{ orbitRotation += e.deltaY*0.001; layoutOrbit(); e.preventDefault(); },{passive:false});
+
+const cockpitCtl=makeCanvasCtx('cockpitCanvas');
+let cockpitState={fog:0,rain:0,speed:58,follow:32,belt:true,eventText:''};
+function drawCockpit(){
+  const {ctx,w,h}=cockpitCtl.fit();
+  ctx.clearRect(0,0,w,h);
+  const g=ctx.createLinearGradient(0,0,0,h); g.addColorStop(0,'#040609'); g.addColorStop(1,'#0a1018');
+  ctx.fillStyle=g; ctx.fillRect(0,0,w,h);
+  ctx.strokeStyle='rgba(79,227,196,0.25)'; ctx.lineWidth=2;
+  const horizon=h*0.5;
+  ctx.beginPath(); ctx.moveTo(w*0.5-10,horizon); ctx.lineTo(w*0.1,h); ctx.moveTo(w*0.5+10,horizon); ctx.lineTo(w*0.9,h); ctx.stroke();
+  const t=performance.now()/500;
+  for(let i=0;i<6;i++){
+    const p=((i/6)+ (t%1))%1;
+    const y=horizon+p*p*(h-horizon);
+    const hw=10+p*p*(w*0.35);
+    ctx.fillStyle=`rgba(255,180,84,${0.2+0.5*p})`;
+    ctx.fillRect(w/2-3,y,6,3+p*8);
+  }
+  if(cockpitState.fog>0){
+    ctx.fillStyle=`rgba(200,210,220,${cockpitState.fog*0.5})`; ctx.fillRect(0,0,w,h);
+  }
+  if(cockpitState.rain>0){
+    ctx.strokeStyle=`rgba(180,220,255,${0.3+cockpitState.rain*0.4})`;
+    for(let i=0;i<40*cockpitState.rain;i++){
+      const rx=Math.random()*w, ry=Math.random()*h;
+      ctx.beginPath(); ctx.moveTo(rx,ry); ctx.lineTo(rx-4,ry+14); ctx.stroke();
+    }
+  }
+  requestAnimationFrame(drawCockpit);
+}
+drawCockpit();
+function fireCockpitEvent(kind){
+  const badge=document.getElementById('cockpitEvent');
+  const map={phone:'PHONE NOTIFICATION',ped:'PEDESTRIAN AHEAD',brake:'HARD BRAKE',blind:'TRUCK IN BLIND SPOT'};
+  if(map[kind]){
+    badge.textContent=map[kind]; badge.classList.add('show');
+    setTimeout(()=>badge.classList.remove('show'),1800);
+  }
+  if(kind==='fog'){ cockpitState.fog = cockpitState.fog>0?0:0.6; }
+  if(kind==='rain'){ cockpitState.rain = cockpitState.rain>0?0:1; }
+  if(kind==='brake'){
+    document.getElementById('hudSpeed').textContent='SPEED '+Math.max(10,cockpitState.speed-30)+' km/h';
+    setTimeout(()=>document.getElementById('hudSpeed').textContent='SPEED '+cockpitState.speed+' km/h',1400);
+  }
+}
+document.querySelectorAll('[data-ev]').forEach(b=> b.addEventListener('click',()=>fireCockpitEvent(b.dataset.ev)));
+
+function updateSim(){
+  const speedKmh=+document.getElementById('dSpeed').value;
+  const reactCs=+document.getElementById('dReact').value;
+  const roadIdx=+document.getElementById('dRoad').value;
+  const visIdx=+document.getElementById('dVis').value;
+  const reactSec=reactCs/10;
+  document.getElementById('vSpeed').textContent=speedKmh;
+  document.getElementById('vReact').textContent=reactSec.toFixed(1);
+  const roadLabels=['Dry','Wet','Icy']; const roadMu=[0.75,0.5,0.25];
+  const visLabels=['Clear','Rain/Fog','Night glare']; const visMul=[1,1.15,1.3];
+  document.getElementById('vRoad').textContent=roadLabels[roadIdx];
+  document.getElementById('vVis').textContent=visLabels[visIdx];
+  document.getElementById('nSpeed').style.transform=`translateX(-50%) rotate(${(speedKmh-70)/50*70}deg)`;
+  document.getElementById('nReact').style.transform=`translateX(-50%) rotate(${(reactCs-17)/13*70}deg)`;
+  document.getElementById('nRoad').style.transform=`translateX(-50%) rotate(${(roadIdx-1)*40}deg)`;
+  document.getElementById('nVis').style.transform=`translateX(-50%) rotate(${(visIdx-1)*40}deg)`;
+
+  const speedMs=speedKmh/3.6;
+  const reactDist=speedMs*reactSec*visMul[visIdx];
+  const g=9.81, mu=roadMu[roadIdx];
+  const brakeDist=(speedMs*speedMs)/(2*mu*g);
+  const total=reactDist+brakeDist;
+  document.getElementById('outReact').textContent=reactDist.toFixed(1);
+  document.getElementById('outBrake').textContent=brakeDist.toFixed(1);
+  document.getElementById('outTotal').textContent=total.toFixed(1);
+
+  const roadLenM=45; const roadPx=document.getElementById('simRoad').clientWidth-60;
+  const scale=roadPx/roadLenM;
+  const rz=document.getElementById('reactZone'), bz=document.getElementById('brakeZone'), car=document.getElementById('simCar');
+  const reactPx=Math.min(reactDist*scale, roadPx);
+  rz.style.width=reactPx+'px';
+  bz.style.left=(10+reactPx)+'px';
+  bz.style.width=Math.min(brakeDist*scale, roadPx-reactPx)+'px';
+  const stopPx=Math.min(total*scale, roadPx+40);
+  car.style.left=(10+stopPx)+'px';
+  car.textContent = total>=roadLenM ? '🚗💥' : '🚗';
+}
+['dSpeed','dReact','dRoad','dVis'].forEach(id=> document.getElementById(id).addEventListener('input',updateSim));
+updateSim();
+
+const emergencyTl=document.getElementById('emergencyTl');
+emergencyTl.addEventListener('mouseover',e=>{
+  const step=e.target.closest('.tl-step'); if(!step) return;
+  emergencyTl.querySelectorAll('.tl-step').forEach(s=>s.classList.remove('active'));
+  step.classList.add('active');
+});
+
+const finaleIo=new IntersectionObserver(entries=>{
+  entries.forEach(en=>{
+    if(en.isIntersecting){
+      window.__setWorldMode('safe');
+      landed=true;
+      ['f1','f2','f3'].forEach((id,i)=> setTimeout(()=>document.getElementById(id).classList.add('in'),400+i*700));
+    } else {
+      window.__setWorldMode('dark'); landed=false;
+    }
+  });
+},{threshold:0.4});
+finaleIo.observe(document.getElementById('finale'));
+
+document.getElementById('signature').addEventListener('mousemove',e=>{
+  const r=e.target.getBoundingClientRect();
+  const dx=(e.clientX-(r.left+r.width/2))/r.width;
+  e.target.style.transform=`translateX(${dx*6}px)`;
+});
+document.getElementById('signature').addEventListener('mouseleave',e=>{ e.target.style.transform='translateX(0)'; });
+
+})();
+</script>
+</body>
+</html>
